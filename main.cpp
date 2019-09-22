@@ -21,7 +21,6 @@ int main(int argc, char *argv[]){
         int v;
         std::tie(x, y, v) = c;
         std::cout << x << y << v << std::endl;
-        //std::cout << c << std::endl;
         }
 
 
