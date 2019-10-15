@@ -14,7 +14,6 @@ int main(int argc, char *argv[]){
 
     assert(matrix.size() == 1);
     // выведется одна строка// 100100314
-
     for(auto c: matrix){
         int x;
         int y;
@@ -22,7 +21,6 @@ int main(int argc, char *argv[]){
         std::tie(x, y, v) = c;
         std::cout << x << y << v << std::endl;
         }
-
 
     std::cout << "Matrix diagonal test:" << std::endl;
     Matrix<int,-1> matrix2;

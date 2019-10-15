@@ -3,6 +3,7 @@
 
 #include <map>
 #include <iostream>
+#include <exception>
 
 #define DEBUG false
 #define TRACE(value) \
@@ -19,37 +20,36 @@ class Matrix
 public:
     class MatrixValueWraper;
     class MatrixIterator;
-
+    friend class MatrixValueWraper;
 /**
  * Класс для представления столбцов матрицы. Внутри каждого столбца будет map со строками. 
  * Map применяется для того что бы хранить элементы матрицы.
  */
     class MatrixColumn
     {
-        friend class MatrixValueWraper;
-
     public:
-        MatrixColumn() : _index(0) {};
-        MatrixColumn(size_t index) : _index(index) {};
+        MatrixColumn(Matrix& matrix, size_t index) : _matrix (matrix),_index(index) {};
+
         /**
          * Оператор индексатора возвращает обертку MatrixValueWraper. Обертка нужна для того, чтобы
          * при операциях получения данных не создавать новых элементах в контейнере map. А при операциях
          * присваивания - создавать новые элементы.
          */
-        MatrixValueWraper operator[](size_t index) { return MatrixValueWraper(this, index); }
-        /**
-         * Получаем количество заполненых элементов в колонке.
-         */
-        size_t size() { return _values.size(); }
+        MatrixValueWraper operator[](size_t row) { 
+            TRACE("MatrixWraper[]");
+            return MatrixValueWraper(_matrix, _index, row); }
+
         /**
          * Индекс колонки в матрице.
          */
         size_t get_index() { return _index;}
 
+
+
     private:
         friend MatrixIterator;
+        Matrix& _matrix;
         size_t _index;
-        std::map<size_t, T> _values;
     };
 
 /**
@@ -57,21 +57,21 @@ public:
  */
     class MatrixValueWraper
     {
+
     public:
         /**
          * В конструкторе мы сохраняем значение индекса ячейки и вычисляем текущее значение.
          * Хранить все это нужно, что бы была возможность превести обертку к tuple<int&,int&,T>
          * иначе бы можно было вычислять "на лету".
          */
-        MatrixValueWraper(MatrixColumn *matrix_column, size_t row) : _matrix_column(matrix_column), _row(row)
-        {
-            _col   = _matrix_column->get_index();
-            auto element = _matrix_column->_values.find(_row);
-            if (element != _matrix_column->_values.end()){
-                _value = element->second;
-            }
-            else{
-                _value = DEFAULT_VALUE;
+        MatrixValueWraper(Matrix &matrix, size_t col, size_t row) : _matrix(matrix), _col(col), _row(row),_value(DEFAULT_VALUE){
+            auto col_element = _matrix._columns.find(_col);
+            if(col_element != _matrix._columns.end()){
+                auto row_element = col_element->second.find(_row);
+                if( row_element != col_element->second.end()){
+                    _value = row_element->second;
+                    TRACE("MatrixValueWraper::Construct");
+                }
             }
         };
 
@@ -80,15 +80,8 @@ public:
          */
         bool operator==(const T &other)
         {
-            auto element = _matrix_column->_values.find(_row);
-            if (element != _matrix_column->_values.end())
-            {
-                return (element->second == other);
-            }
-            else
-            {
-                return (DEFAULT_VALUE == other);
-            }
+            TRACE("MatrixValueWrapper==");
+            return other==_value;
         }
 
         /**
@@ -97,15 +90,12 @@ public:
          */
         MatrixValueWraper &operator=(const T &other)
         {
-            auto element = _matrix_column->_values.find(_row);
-            if (element != _matrix_column->_values.end())
-            {
-                element->second = other;
+            TRACE("MatrixValueWraper=");
+            _value = other;
+            if(_value!=DEFAULT_VALUE){
+                _matrix.flush(*this);
             }
-            else
-            {
-                _matrix_column->_values.insert({_row, other});
-            }
+
             return *this;
         }
 
@@ -125,27 +115,32 @@ public:
         }
 
     private:
-        MatrixColumn *_matrix_column;
+        friend Matrix;
+        Matrix & _matrix;
         int _col;
         int _row;
-        T _value;
+        T   _value;
     };
 
     /**
+     * Сохраняем колонку в матрице
+     */
+
+    void flush(MatrixValueWraper &value){
+        TRACE("flush");
+        auto column = _columns.find(value._col);
+        if (column == _columns.end()){
+                _columns[value._col] = std::map<size_t,T>();
+            }
+        _columns[value._col][value._row] = value._value;
+    }
+    /**
      * Метод для получения колонки по ее индексу.
      */
-    MatrixColumn &operator[](size_t index)
+    MatrixColumn operator[](size_t index)
     {
-        auto element = _columns.find(index);
-        if (element != _columns.end())
-        {
-            return element->second;
-        }
-        else
-        {
-            _columns[index] = MatrixColumn(index);
-            return _columns[index];
-        }
+      TRACE("Matrix[]");
+      return MatrixColumn(*this,index);
     }
 
     /**
@@ -173,25 +168,10 @@ public:
          * Может быть ситуация когда у нас етсь пустые столбцы. Т.е. столбец есть, а значений в нем нет.
          * Поэтому тут у нас не очень красивый код, который перескакивает через такие столбцы.
          */
-        MatrixIterator(const Matrix *matrix, bool end) : _end(end), _matrix_ptr(matrix)
-        {
-            if (!end)
-            {
-                _column = _matrix_ptr->_columns.begin();
-                if (_column != _matrix_ptr->_columns.end())
-                {
-                    while (((_row = _column->second._values.begin()) == _column->second._values.end()) &&
-                           (_column != _matrix_ptr->_columns.end())){
-                        ++_column;
-                    }
-                    if (_column != _matrix_ptr->_columns.end()){}
-                    else _end = true;
-                    
-                }
-                else
-                {
-                    _end = true;
-                }
+        MatrixIterator(Matrix &matrix, bool end) : _end(end), _matrix(matrix) {
+            if(!_end){
+                _column = matrix._columns.begin();
+                _row    = _column->second.begin();
             }
         }
 
@@ -200,8 +180,9 @@ public:
          */
         MatrixValueWraper operator*()
         {
-            MatrixColumn *ptr_column =  (MatrixColumn *)&(_column->second);
-            return MatrixValueWraper(ptr_column, _row->first);
+             if(!_end){
+                 return MatrixValueWraper(_matrix,_column->first,_row->first);
+             } else throw std::logic_error("out of range");
         }
 
         /**
@@ -210,27 +191,21 @@ public:
          */
         MatrixIterator &operator++()
         {
+            TRACE("MatrixIterator::start");
             if (_end)
                 return *this;
+
+            TRACE("MatrixIterator::work");
             ++_row;
-            if (_row != _column->second._values.end())
-            {
-            }
-            else
-            {
+            if (_row == _column->second.end()){
                 ++_column;
-                if (_column != _matrix_ptr->_columns.end())
-                {
-                    while (((_row = _column->second._values.begin()) == _column->second._values.end()) &&
-                           (_column != _matrix_ptr->_columns.end()))
-                        ++_column;
-                    if (_column == _matrix_ptr->_columns.end())
-                    {
-                        _end = true;
-                    }
+                if (_column != _matrix._columns.end()){
+                    _row    = _column->second.begin();
                 }
-                else
+                else{
+                    TRACE("MatrixIterator::end");
                     _end = true;
+                }
             }
 
             return *this;
@@ -241,25 +216,26 @@ public:
          */
         bool operator!=(const MatrixIterator &other)
         {
-            if (_matrix_ptr != other._matrix_ptr)
+            if(_end==true)
+            if(other._end==true) return false;
+
+            if (&_matrix != &other._matrix)
                 return true;
             if (_end != other._end)
                 return true;
-            if ((_end == true) && (other._end == true))
-                return false;
-            {
-                if (_column != other._column)
+
+            if (_column != other._column)
                     return true;
-                if (_row != other._row)
+            if (_row != other._row)
                     return true;
-            }
+
             return false;
         }
 
     private:
         bool _end;
-        const Matrix *const _matrix_ptr;
-        typename std::map<size_t, MatrixColumn>::const_iterator _column;
+        Matrix &_matrix;
+        typename std::map<size_t, std::map<size_t, T>>::const_iterator _column;
         typename std::map<size_t, T>::const_iterator _row;
     };
 
@@ -268,19 +244,19 @@ public:
      */
     MatrixIterator begin()
     {
-        return MatrixIterator(this, false);
+        return MatrixIterator(*this, false);
     }
     /**
      * Получаем итератор на конец матрицы.
      */
     MatrixIterator end()
     {
-        return MatrixIterator(this, true);
+        return MatrixIterator(*this, true);
     }
 
 private:
     friend class MatrixIterator;
-    std::map<size_t, MatrixColumn> _columns;
+    std::map<size_t, std::map<size_t,T> > _columns;
 };
 
 } // namespace homework

@@ -1,6 +1,7 @@
 #include "matrix.h"
 #include <gtest/gtest.h>
 
+
 TEST(test_empty, basic_test_set)
 {
    homework::Matrix<int,-1> matrix;
@@ -40,6 +41,7 @@ TEST(test_tuple, basic_test_set)
 
    ASSERT_TRUE((a==100)&&(b==100)&&(c==555));
 }
+
 
 int main(int argc, char **argv) {
     testing::InitGoogleTest(&argc, argv);
