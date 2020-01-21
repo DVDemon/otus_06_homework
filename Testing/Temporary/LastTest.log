@@ -1,0 +1,48 @@
+Start testing: Jan 21 15:49 UTC
+----------------------------------------------------------
+1/1 Testing: gtests
+1/1 Test: gtests
+Command: "/home/travis/build/DVDemon/otus_06_homework/gtests"
+Directory: /home/travis/build/DVDemon/otus_06_homework
+"gtests" start time: Jan 21 15:49 UTC
+Output:
+----------------------------------------------------------
+[==========] Running 5 tests from 5 test cases.
+[----------] Global test environment set-up.
+[----------] 1 test from test_empty
+[ RUN      ] test_empty.basic_test_set
+[       OK ] test_empty.basic_test_set (0 ms)
+[----------] 1 test from test_empty (0 ms total)
+
+[----------] 1 test from test_get_value
+[ RUN      ] test_get_value.basic_test_set
+[       OK ] test_get_value.basic_test_set (0 ms)
+[----------] 1 test from test_get_value (0 ms total)
+
+[----------] 1 test from test_set_value
+[ RUN      ] test_set_value.basic_test_set
+[       OK ] test_set_value.basic_test_set (0 ms)
+[----------] 1 test from test_set_value (0 ms total)
+
+[----------] 1 test from test_size_after_set
+[ RUN      ] test_size_after_set.basic_test_set
+[       OK ] test_size_after_set.basic_test_set (0 ms)
+[----------] 1 test from test_size_after_set (0 ms total)
+
+[----------] 1 test from test_tuple
+[ RUN      ] test_tuple.basic_test_set
+[       OK ] test_tuple.basic_test_set (0 ms)
+[----------] 1 test from test_tuple (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 5 tests from 5 test cases ran. (0 ms total)
+[  PASSED  ] 5 tests.
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"gtests" end time: Jan 21 15:49 UTC
+"gtests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jan 21 15:49 UTC
